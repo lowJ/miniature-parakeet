@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STM32 Video Converter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border: 1px solid #b8d4e3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .info-box strong {
+            color: #2980b9;
+        }
+
+        .drop-zone {
+            border: 3px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #3498db;
+            background: #ecf0f1;
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        .drop-zone p {
+            margin: 0;
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+
+        .drop-zone .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .settings {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .settings.visible {
+            display: block;
+        }
+
+        .settings h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .preview-container {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .preview-container video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .file-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-container.visible {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .log.visible {
+            display: block;
+        }
+
+        .log p {
+            margin: 2px 0;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .success.visible {
+            display: block;
+        }
+
+        .crop-preview {
+            position: relative;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            border: 2px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.2);
+            pointer-events: none;
+        }
+
+        .advanced-toggle {
+            background: none;
+            border: none;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 5px 0;
+            width: auto;
+            text-decoration: underline;
+        }
+
+        .advanced-toggle:hover {
+            color: #2980b9;
+        }
+
+        .advanced-settings {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .advanced-settings.visible {
+            display: block;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .radio-option:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-top: 3px;
+            margin-right: 10px;
+        }
+
+        .radio-option input[type="radio"]:checked + .radio-label strong {
+            color: #3498db;
+        }
+
+        .radio-label {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .radio-label strong {
+            font-size: 14px;
+        }
+
+        .radio-label small {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>STM32 Video Converter</h1>
+
+    <div class="info-box">
+        <strong>Output Format:</strong> 160x128 pixels, RGB565 Big-Endian, Raw Video<br>
+        <strong>Supported Input:</strong> MP4, WebM, AVI, MOV, and other common video formats
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+        <div class="icon">🎬</div>
+        <p>Drag & drop a video file here<br>or click to browse</p>
+        <input type="file" id="fileInput" accept="video/*">
+    </div>
+
+    <div class="settings" id="settings">
+        <h3>Conversion Settings</h3>
+
+        <div class="preview-container">
+            <video id="videoPreview" controls muted></video>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="outputName">Output Filename</label>
+            <input type="text" id="outputName" placeholder="video.raw">
+        </div>
+
+        <div class="form-group">
+            <label>Aspect Ratio Handling</label>
+            <div class="radio-group">
+                <label class="radio-option">
+                    <input type="radio" name="aspectRatio" value="crop" checked>
+                    <span class="radio-label">
+                        <strong>Crop to fill</strong>
+                        <small>Fills screen, may cut edges</small>
+                    </span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="aspectRatio" value="fit">
+                    <span class="radio-label">
+                        <strong>Fit with black bars</strong>
+                        <small>Shows everything, letterbox/pillarbox</small>
+                    </span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="aspectRatio" value="stretch">
+                    <span class="radio-label">
+                        <strong>Stretch to fit</strong>
+                        <small>Fills screen, may distort image</small>
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <button type="button" class="advanced-toggle" onclick="toggleAdvanced()">
+            Show Advanced Settings
+        </button>
+
+        <div class="advanced-settings" id="advancedSettings">
+            <p style="font-size: 13px; color: #666; margin-top: 0;">
+                Crop the input video before scaling. Leave at 0 to use full frame.
+            </p>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cropWidth">Crop Width (px)</label>
+                    <input type="number" id="cropWidth" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="cropHeight">Crop Height (px)</label>
+                    <input type="number" id="cropHeight" value="0" min="0">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cropX">Crop X Offset (px)</label>
+                    <input type="number" id="cropX" value="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="cropY">Crop Y Offset (px)</label>
+                    <input type="number" id="cropY" value="0" min="0">
+                </div>
+            </div>
+        </div>
+
+        <button id="convertBtn" onclick="convertVideo()">Convert Video</button>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Initializing...</div>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+    <div class="success" id="successBox"></div>
+
+    <div class="log" id="log"></div>
+
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+
+        let ffmpeg = null;
+        let inputFile = null;
+        let videoMetadata = { width: 0, height: 0, duration: 0 };
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const settings = document.getElementById('settings');
+        const videoPreview = document.getElementById('videoPreview');
+        const fileInfo = document.getElementById('fileInfo');
+        const outputName = document.getElementById('outputName');
+        const convertBtn = document.getElementById('convertBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const errorBox = document.getElementById('errorBox');
+        const successBox = document.getElementById('successBox');
+        const logBox = document.getElementById('log');
+
+        // Initialize FFmpeg
+        async function initFFmpeg() {
+            if (ffmpeg) return;
+
+            ffmpeg = createFFmpeg({
+                log: true,
+                logger: ({ message }) => {
+                    log(message);
+                },
+                progress: ({ ratio }) => {
+                    const percent = Math.round(ratio * 100);
+                    progressFill.style.width = percent + '%';
+                    progressText.textContent = `Converting... ${percent}%`;
+                },
+            });
+
+            log('Loading FFmpeg (this may take a moment)...');
+            await ffmpeg.load();
+            log('FFmpeg loaded successfully');
+        }
+
+        // Logging
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            logBox.appendChild(p);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        // Error handling
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.add('visible');
+            successBox.classList.remove('visible');
+        }
+
+        function hideError() {
+            errorBox.classList.remove('visible');
+        }
+
+        function showSuccess(message) {
+            successBox.textContent = message;
+            successBox.classList.add('visible');
+            errorBox.classList.remove('visible');
+        }
+
+        // File handling
+        function handleFile(file) {
+            if (!file.type.startsWith('video/')) {
+                showError('Please select a valid video file');
+                return;
+            }
+
+            hideError();
+            inputFile = file;
+
+            // Set default output name
+            const baseName = file.name.replace(/\.[^/.]+$/, '');
+            outputName.value = baseName + '.raw';
+
+            // Create preview
+            const url = URL.createObjectURL(file);
+            videoPreview.src = url;
+
+            videoPreview.onloadedmetadata = () => {
+                videoMetadata.width = videoPreview.videoWidth;
+                videoMetadata.height = videoPreview.videoHeight;
+                videoMetadata.duration = videoPreview.duration;
+
+                const sizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+                fileInfo.innerHTML = `
+                    <strong>${file.name}</strong><br>
+                    ${videoMetadata.width}x${videoMetadata.height} |
+                    ${formatDuration(videoMetadata.duration)} |
+                    ${sizeInMB} MB
+                `;
+
+                // Set crop defaults to full frame
+                document.getElementById('cropWidth').value = videoMetadata.width;
+                document.getElementById('cropHeight').value = videoMetadata.height;
+            };
+
+            settings.classList.add('visible');
+        }
+
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Drag and drop
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Conversion
+        window.convertVideo = async function() {
+            if (!inputFile) {
+                showError('Please select a video file first');
+                return;
+            }
+
+            try {
+                hideError();
+                convertBtn.disabled = true;
+                progressContainer.classList.add('visible');
+                logBox.classList.add('visible');
+                logBox.innerHTML = '';
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Initializing FFmpeg...';
+
+                // Initialize FFmpeg if needed
+                await initFFmpeg();
+
+                // Write input file to FFmpeg filesystem
+                progressText.textContent = 'Loading video file...';
+                const inputData = await fetchFile(inputFile);
+                ffmpeg.FS('writeFile', 'input.mp4', inputData);
+
+                // Build filter string
+                let filters = [];
+
+                // Add crop filter if specified (from advanced settings)
+                const cropW = parseInt(document.getElementById('cropWidth').value) || 0;
+                const cropH = parseInt(document.getElementById('cropHeight').value) || 0;
+                const cropX = parseInt(document.getElementById('cropX').value) || 0;
+                const cropY = parseInt(document.getElementById('cropY').value) || 0;
+
+                if (cropW > 0 && cropH > 0 &&
+                    (cropW !== videoMetadata.width || cropH !== videoMetadata.height || cropX !== 0 || cropY !== 0)) {
+                    filters.push(`crop=${cropW}:${cropH}:${cropX}:${cropY}`);
+                }
+
+                // Get aspect ratio handling mode
+                const aspectMode = document.querySelector('input[name="aspectRatio"]:checked').value;
+
+                // Apply scaling based on aspect ratio mode
+                switch (aspectMode) {
+                    case 'crop':
+                        // Scale up to fill, then crop to exact size
+                        filters.push('scale=160:128:force_original_aspect_ratio=increase');
+                        filters.push('crop=160:128');
+                        break;
+                    case 'fit':
+                        // Scale down to fit, then pad with black bars
+                        filters.push('scale=160:128:force_original_aspect_ratio=decrease');
+                        filters.push('pad=160:128:(ow-iw)/2:(oh-ih)/2');
+                        break;
+                    case 'stretch':
+                    default:
+                        // Simple stretch to exact size
+                        filters.push('scale=160:128');
+                        break;
+                }
+
+                const filterString = filters.join(',');
+
+                // Run FFmpeg
+                progressText.textContent = 'Converting...';
+                log(`Running conversion with filter: ${filterString}`);
+
+                await ffmpeg.run(
+                    '-i', 'input.mp4',
+                    '-an',  // No audio
+                    '-vf', filterString,
+                    '-f', 'rawvideo',
+                    '-pix_fmt', 'rgb565be',
+                    '-y',
+                    'output.raw'
+                );
+
+                // Read output file
+                progressText.textContent = 'Preparing download...';
+                const outputData = ffmpeg.FS('readFile', 'output.raw');
+
+                // Create download
+                const blob = new Blob([outputData], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outputName.value || 'video.raw';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                // Calculate output size
+                const outputSizeMB = (outputData.length / (1024 * 1024)).toFixed(2);
+
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Complete!';
+                showSuccess(`Conversion complete! Output size: ${outputSizeMB} MB`);
+
+                log('Conversion completed successfully!');
+                log(`Output file size: ${outputSizeMB} MB`);
+
+            } catch (error) {
+                console.error(error);
+                showError('Conversion failed: ' + error.message);
+                log('ERROR: ' + error.message);
+            } finally {
+                convertBtn.disabled = false;
+            }
+        };
+
+        // Advanced settings toggle
+        window.toggleAdvanced = function() {
+            const advanced = document.getElementById('advancedSettings');
+            const btn = document.querySelector('.advanced-toggle');
+
+            if (advanced.classList.contains('visible')) {
+                advanced.classList.remove('visible');
+                btn.textContent = 'Show Advanced Settings';
+            } else {
+                advanced.classList.add('visible');
+                btn.textContent = 'Hide Advanced Settings';
+            }
+        };
+    </script>
+</body>
+</html>
