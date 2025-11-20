@@ -569,7 +569,8 @@
                 progressFill.style.width = '0%';
                 progressText.textContent = 'Initializing FFmpeg...';
 
-                // Initialize FFmpeg if needed
+                // Reset FFmpeg for each conversion (required for WebAssembly version)
+                ffmpeg = null;
                 await initFFmpeg();
 
                 // Write input file to FFmpeg filesystem
