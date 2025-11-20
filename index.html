@@ -439,6 +439,8 @@
 
             ffmpeg = createFFmpeg({
                 log: true,
+                mainName: 'main',
+                corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js',
                 logger: ({ message }) => {
                     log(message);
                 },
@@ -449,7 +451,7 @@
                 },
             });
 
-            log('Loading FFmpeg (this may take a moment)...');
+            log('Loading FFmpeg single-threaded (this may take a moment)...');
             await ffmpeg.load();
             log('FFmpeg loaded successfully');
         }
